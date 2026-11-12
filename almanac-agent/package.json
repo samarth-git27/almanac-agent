@@ -1,0 +1,27 @@
+{
+  "name": "almanac-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A web-search chat agent with a deterministic sense of time and a persistent memory of past conversations.",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "chat": "tsx scripts/chat.ts",
+    "seed": "tsx scripts/seed.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "eval": "tsx evals/run.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

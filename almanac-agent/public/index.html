@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Almanac</title>
+<style>
+  :root {
+    --bg: #faf9f6; --panel: #ffffff; --ink: #1c1b19; --muted: #77736b; --line: #e7e3da;
+    --accent: #b4532a; --accent-soft: #f6e6dc; --user: #1c1b19; --user-ink: #faf9f6; --warn: #a15c00;
+    --code: #f1eee6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151412; --panel: #1d1b18; --ink: #ece8df; --muted: #9a958a; --line: #2e2b26;
+      --accent: #e08a5f; --accent-soft: #33261e; --user: #ece8df; --user-ink: #151412; --warn: #e5a94d; --code: #26231f; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 12px; }
+  header h1 { font: 600 18px/1 Georgia, "Times New Roman", serif; margin: 0; letter-spacing: .2px; }
+  header .tag { color: var(--muted); font-size: 13px; }
+  header button { margin-left: auto; background: none; border: 1px solid var(--line); color: var(--muted); padding: 5px 10px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 13px; }
+  header button:hover { color: var(--ink); }
+  #log { flex: 1; overflow-y: auto; padding: 24px 16px 8px; scroll-behavior: smooth; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  .msg { margin: 0 0 22px; }
+  .me { display: flex; justify-content: flex-end; }
+  .me .bubble { background: var(--user); color: var(--user-ink); padding: 10px 14px; border-radius: 16px 16px 4px 16px; max-width: 85%; white-space: pre-wrap; word-wrap: break-word; }
+  .bot .body { word-wrap: break-word; }
+  .body p { margin: 0 0 .75em; } .body p:last-child { margin-bottom: 0; }
+  .body ul, .body ol { margin: 0 0 .75em; padding-left: 1.3em; } .body li { margin: .15em 0; }
+  .body a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .body a.unverified { color: var(--warn); text-decoration-style: dashed; }
+  .body code { background: var(--code); padding: 1px 5px; border-radius: 5px; font: 13.5px ui-monospace, Menlo, monospace; }
+  .body pre { background: var(--code); padding: 12px; border-radius: 10px; overflow-x: auto; } .body pre code { padding: 0; background: none; }
+  .body h3, .body h4 { margin: 1em 0 .4em; font-size: 1em; }
+  .tablewrap { overflow-x: auto; margin: 0 0 .75em; }
+  .body table { border-collapse: collapse; font-size: 14.5px; min-width: 60%; }
+  .body th, .body td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  .body th { background: var(--code); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  .chip { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 3px 10px; display: inline-flex; gap: 6px; align-items: center; max-width: 100%; }
+  .chip.active::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--accent); border-top-color: transparent; animation: spin .8s linear infinite; }
+  .chip.err { color: var(--warn); border-color: var(--warn); }
+  .chip.time { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+  .chip.memory { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+  .chip span.q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .dots::after { content: "…"; animation: blink 1s steps(3) infinite; color: var(--muted); }
+  @keyframes blink { 50% { opacity: .2; } }
+  .foot { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+  .foot details summary { cursor: pointer; list-style: none; } .foot details summary::-webkit-details-marker { display: none; }
+  .foot ol { margin: 6px 0 0; padding-left: 1.2em; } .foot li { margin: 2px 0; }
+  .foot a { color: var(--muted); }
+  .note { margin-top: 8px; font-size: 13px; color: var(--warn); }
+  .err-box { border: 1px solid var(--warn); color: var(--warn); border-radius: 10px; padding: 10px 14px; }
+  #empty { color: var(--muted); padding-top: 8vh; }
+  #empty h2 { font: 400 28px/1.2 Georgia, serif; color: var(--ink); margin: 0 0 8px; }
+  #empty .ex { display: flex; flex-direction: column; gap: 8px; margin-top: 22px; }
+  #empty button { text-align: left; background: var(--panel); border: 1px solid var(--line); color: var(--ink); border-radius: 12px; padding: 10px 14px; cursor: pointer; font: inherit; font-size: 14.5px; }
+  #empty button:hover { border-color: var(--accent); }
+  form { padding: 10px 16px 18px; }
+  .box { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 8px 8px 8px 14px; }
+  .box:focus-within { border-color: var(--accent); }
+  textarea { flex: 1; resize: none; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; max-height: 180px; padding: 6px 0; }
+  #send { border: 0; background: var(--accent); color: #fff; width: 38px; height: 38px; border-radius: 12px; cursor: pointer; font-size: 18px; flex: none; }
+  #send[disabled] { opacity: .4; cursor: default; }
+  .hint { max-width: 760px; margin: 6px auto 0; font-size: 12px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Almanac</h1><span class="tag">web-search chat · knows what day it is · remembers</span>
+  <button id="new" title="Start a fresh conversation (memory of past ones is kept)">New chat</button>
+</header>
+<div id="log"><div class="wrap" id="wrap">
+  <div id="empty">
+    <h2>Ask me anything that might have changed.</h2>
+    <div>I search the web, cite what I use, and keep a ledger of our past conversations, so you can ask <i>“has anything changed since Monday?”</i></div>
+    <div class="ex">
+      <button>What did OpenAI ship this week?</button>
+      <button>What did I ask you on 3 November? Is your answer still correct today?</button>
+      <button>Last Tuesday I asked about Postgres hosting. Has any pricing changed since then?</button>
+    </div>
+  </div>
+</div></div>
+<form id="f">
+  <div class="box">
+    <textarea id="in" rows="1" placeholder="Message Almanac…" autofocus></textarea>
+    <button id="send" type="submit" title="Send">↑</button>
+  </div>
+  <div class="hint">Enter to send · Shift+Enter for a new line · links in dashed amber were not in the search results</div>
+</form>
+<script>
+const $ = (s) => document.querySelector(s);
+const log = $('#log'), wrap = $('#wrap'), input = $('#in'), sendBtn = $('#send');
+const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return undefined; } })();
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+let sessionId = store.get('almanac.session') || newId();
+store.set('almanac.session', sessionId);
+let busy = false;
+
+function newId() { return (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/[^\w-]/g, '').slice(0, 40); }
+const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const normUrl = (u) => { try { const x = new URL(u); return x.hostname.replace(/^www\./, '').toLowerCase() + x.pathname.replace(/\/+$/, '') + x.search; } catch { return u; } };
+
+// ---- tiny, safe markdown (escape first, then add structure) ----
+function inline(s, unverified) {
+  const codes = [];
+  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return `\u0000${codes.length - 1}\u0000`; });
+  s = esc(s);
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_, t, u) => {
+    const bad = unverified.has(normUrl(u.replace(/&amp;/g, '&')));
+    return `<a href="${u}" target="_blank" rel="noopener noreferrer"${bad ? ' class="unverified" title="Not found in any search result"' : ''}>${t}</a>`;
+  });
+  s = s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,;:!?])/g, (_, p, u) => `${p}<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${esc(codes[+i])}</code>`);
+}
+function md(src, unverified = new Set()) {
+  const lines = src.replace(/\r/g, '').split('\n'); const out = []; let i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^```/.test(l)) { const buf = []; i++; while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]); i++; out.push(`<pre><code>${esc(buf.join('\n'))}</code></pre>`); continue; }
+    if (/^\s*\|.*\|\s*$/.test(l) && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1] || '')) {
+      const row = (r) => r.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+      const head = row(l); i += 2; const body = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) body.push(row(lines[i++]));
+      out.push(`<div class="tablewrap"><table><thead><tr>${head.map((c) => `<th>${inline(c, unverified)}</th>`).join('')}</tr></thead><tbody>${body.map((r) => `<tr>${r.map((c) => `<td>${inline(c, unverified)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`); continue;
+    }
+    const h = /^(#{1,4})\s+(.*)$/.exec(l); if (h) { out.push(`<h${Math.min(4, h[1].length + 2)}>${inline(h[2], unverified)}</h${Math.min(4, h[1].length + 2)}>`); i++; continue; }
+    if (/^\s*([-*•])\s+/.test(l)) { const it = []; while (i < lines.length && /^\s*([-*•])\s+/.test(lines[i])) it.push(lines[i++].replace(/^\s*([-*•])\s+/, '')); out.push(`<ul>${it.map((x) => `<li>${inline(x, unverified)}</li>`).join('')}</ul>`); continue; }
+    if (/^\s*\d+[.)]\s+/.test(l)) { const it = []; while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) it.push(lines[i++].replace(/^\s*\d+[.)]\s+/, '')); out.push(`<ol>${it.map((x) => `<li>${inline(x, unverified)}</li>`).join('')}</ol>`); continue; }
+    if (!l.trim()) { i++; continue; }
+    const p = []; while (i < lines.length && lines[i].trim() && !/^(```|#{1,4}\s|\s*([-*•]|\d+[.)])\s|\s*\|.*\|\s*$)/.test(lines[i])) p.push(lines[i++]);
+    out.push(`<p>${inline(p.join('<br>').replace(/<br>/g, '\n'), unverified).replace(/\n/g, '<br>')}</p>`);
+  }
+  return out.join('');
+}
+
+// ---- rendering ----
+function hideEmpty() { const e = $('#empty'); if (e) e.remove(); }
+function addUser(text) { hideEmpty(); const d = document.createElement('div'); d.className = 'msg me'; d.innerHTML = `<div class="bubble">${esc(text)}</div>`; wrap.appendChild(d); scroll(); }
+function addBot() {
+  hideEmpty(); const d = document.createElement('div'); d.className = 'msg bot';
+  d.innerHTML = '<div class="chips"></div><div class="body"><span class="dots"></span></div><div class="foot"></div>';
+  wrap.appendChild(d); scroll();
+  return { root: d, chips: d.querySelector('.chips'), body: d.querySelector('.body'), foot: d.querySelector('.foot'), text: '', unverified: new Set() };
+}
+function scroll() { log.scrollTop = log.scrollHeight; }
+function chip(parent, cls, html) { const c = document.createElement('span'); c.className = 'chip ' + cls; c.innerHTML = html; parent.appendChild(c); return c; }
+function renderSources(bot, sources) {
+  if (!sources || !sources.length) return;
+  const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+  bot.foot.innerHTML = `<details><summary>${sources.length} source${sources.length > 1 ? 's' : ''} consulted ▾</summary><ol>${sources.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title || host(s.url))}</a> — ${esc(host(s.url))}${s.published ? ' · ' + esc(s.published) : ''}</li>`).join('')}</ol></details>`;
+}
+
+async function send(text) {
+  if (busy || !text.trim()) return;
+  busy = true; sendBtn.disabled = true; input.value = ''; grow();
+  addUser(text); const bot = addBot(); const searches = new Map();
+  let first = true, status = 0;
+  try {
+    const res = await fetch('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: text, sessionId, tz }) });
+    status = res.status;
+    if (!res.ok || !res.body) { const j = await res.json().catch(() => ({})); throw new Error(j.error || `HTTP ${res.status}`); }
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let idx; while ((idx = buf.indexOf('\n\n')) >= 0) {
+        const frame = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        const line = frame.split('\n').find((l) => l.startsWith('data: ')); if (!line) continue;
+        handle(JSON.parse(line.slice(6)));
+      }
+    }
+  } catch (e) {
+    bot.body.innerHTML = `<div class="err-box">${esc(e.message || 'Something went wrong.')}</div>`;
+  } finally { busy = false; sendBtn.disabled = false; input.focus(); }
+
+  function handle(e) {
+    if (e.type === 'meta') {
+      for (const r of e.refs || []) chip(bot.chips, 'time', `🕒 <span class="q">${esc(r)}</span>`);
+      if (e.recall.status === 'found') chip(bot.chips, 'memory', `📖 <span class="q">recalled ${e.recall.records} earlier conversation${e.recall.records === 1 ? '' : 's'}</span>`);
+      else if (e.recall.status === 'none') chip(bot.chips, 'memory', '📖 <span class="q">no matching record in memory</span>');
+      else if (e.recall.status === 'partial') chip(bot.chips, 'memory', '📖 <span class="q">only weak matches in memory</span>');
+    } else if (e.type === 'search') {
+      const f = e.filters && e.filters.length ? ` <small>(${esc(e.filters.join(', '))})</small>` : '';
+      searches.set(e.id, chip(bot.chips, 'active', `<span class="q">${esc(e.queries.join(' · '))}</span>${f}`));
+    } else if (e.type === 'search_done') {
+      const c = searches.get(e.id); if (!c) return; c.classList.remove('active');
+      if (e.error) { c.classList.add('err'); c.insertAdjacentHTML('beforeend', ` ⚠ ${esc(e.error)}`); }
+      else c.insertAdjacentHTML('beforeend', ` · ${e.results} results${e.cached ? ' (cached)' : ` · ${(e.ms / 1000).toFixed(1)}s`}`);
+    } else if (e.type === 'text') {
+      bot.text += e.delta; bot.body.innerHTML = md(bot.text, bot.unverified); if (first) first = false; scroll();
+    } else if (e.type === 'citations') {
+      bot.unverified = new Set(e.unverified.map(normUrl)); bot.body.innerHTML = md(bot.text, bot.unverified);
+      if (e.unverified.length) bot.foot.insertAdjacentHTML('beforebegin', `<div class="note">⚠ ${e.unverified.length} link${e.unverified.length > 1 ? 's' : ''} above did not appear in any search result (dashed): treat with care.</div>`);
+    } else if (e.type === 'done') {
+      renderSources(bot, e.sources);
+      bot.foot.insertAdjacentHTML('afterbegin', `<div title="first token / total">${(e.trace.ttftMs / 1000).toFixed(1)}s to first word · ${(e.trace.totalMs / 1000).toFixed(1)}s total · ${e.trace.searches.length} search${e.trace.searches.length === 1 ? '' : 'es'}</div>`);
+    } else if (e.type === 'error') {
+      bot.body.innerHTML = `<div class="err-box">${esc(e.message)}</div>`;
+    }
+  }
+}
+
+async function restore() {
+  try {
+    const r = await fetch('/api/history?sessionId=' + encodeURIComponent(sessionId)); const j = await r.json();
+    for (const t of j.turns || []) { addUser(t.user); const b = addBot(); b.body.innerHTML = md(t.assistant); renderSources(b, t.sources); }
+  } catch {}
+}
+function grow() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 180) + 'px'; }
+input.addEventListener('input', grow);
+input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(input.value); } });
+$('#f').addEventListener('submit', (e) => { e.preventDefault(); send(input.value); });
+$('#empty').addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') send(e.target.textContent); });
+$('#new').addEventListener('click', () => { if (busy) return; sessionId = newId(); store.set('almanac.session', sessionId); location.reload(); });
+restore();
+</script>
+</body>
+</html>
